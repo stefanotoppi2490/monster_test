@@ -73,12 +73,20 @@ class GameCubit extends Cubit<GameState> {
       switch (state.phase) {
         case Phase.drafting:
           _lockChoicesAndReveal();
+          _startTimer(); // continua a contare la reveal
+          break;
+        case Phase.reveal:
+          _scoreRound(
+            state.currentTerrain,
+            state.oppPreview?.sprint,
+            state.oppPreview?.block,
+          );
+          // _scoreRound si occupa di andare in scoring → recap e riavviare timer
           break;
         case Phase.recap:
           _nextRound();
           break;
         default:
-          // niente timer nelle altre fasi
           break;
       }
     });
@@ -86,7 +94,7 @@ class GameCubit extends Cubit<GameState> {
 
   void selectCard(GameCard card) {
     if (state.phase != Phase.drafting) return;
-    // rispettare limiti: max 1 sprint + max 1 block, e mana
+
     final isSprint = card.kind == CardKind.sprint;
     final isBlock = card.kind == CardKind.block;
 
@@ -94,15 +102,20 @@ class GameCubit extends Cubit<GameState> {
     final alreadySprint = choice.sprint != null;
     final alreadyBlock = choice.block != null;
 
-    final manaCost = card.manaCost;
-    if (state.me.mana < manaCost) return; // non basta mana
+    // ❶ la carta deve essere ancora in mano (evita doppio tap/race)
+    final inHand = state.myPrivate.hand.any((c) => c.id == card.id);
+    if (!inHand) return;
 
+    // ❷ vincoli logici
+    final manaCost = card.manaCost;
+    if (state.me.mana < manaCost) return;
     if (isSprint && alreadySprint) return;
     if (isBlock && alreadyBlock) return;
 
-    // applica scelta + scalare mana + togliere dalla mano
+    // ❸ applico scelta, rimuovo dalla mano e SOLO ORA scalo il mana
     final newHand = [...state.myPrivate.hand]
       ..removeWhere((c) => c.id == card.id);
+
     final newChoice = SecretChoice(
       sprint: isSprint ? card : choice.sprint,
       block: isBlock ? card : choice.block,
@@ -136,9 +149,6 @@ class GameCubit extends Cubit<GameState> {
   }
 
   void _lockChoicesAndReveal() {
-    final terrain = state.currentTerrain;
-
-    // Bot: pesca 5 per turno per semplificare (indipendente dalla tua mano)
     final (deckAfter, oppHand) = repo.draw(_oppDeck, kHandSize);
     _oppDeck = deckAfter;
 
@@ -151,7 +161,6 @@ class GameCubit extends Cubit<GameState> {
 
     GameCard? oppSprint;
     GameCard? oppBlock;
-
     if (_rng.nextBool() && oppOptionsSprint.isNotEmpty) {
       oppSprint = oppOptionsSprint[_rng.nextInt(oppOptionsSprint.length)];
     }
@@ -175,9 +184,7 @@ class GameCubit extends Cubit<GameState> {
       ),
     );
 
-    Future.delayed(Duration(seconds: kRevealSeconds), () {
-      _scoreRound(terrain, oppSprint, oppBlock);
-    });
+    // 👆 NIENTE Future.delayed QUI
   }
 
   void _scoreRound(Terrain t, GameCard? oppSprint, GameCard? oppBlock) {

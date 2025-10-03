@@ -737,6 +737,15 @@ class _BottomHand extends StatelessWidget {
                           onTap: () async {
                             if (pageState == null || itemKey == null) return;
 
+                            final isDrafting = state.phase == Phase.drafting;
+                            final slotFree = (c.kind == CardKind.sprint)
+                                ? state.myPrivate.choice.sprint == null
+                                : state.myPrivate.choice.block == null;
+
+                            final hasMana = c.manaCost <= state.me.mana;
+                            // Blocca animazione se non posso piazzare davvero
+                            if (!isDrafting || !slotFree || !hasMana) return;
+
                             final destKey = (c.kind == CardKind.sprint)
                                 ? pageState._mySprintSlotKey
                                 : pageState._myBlockSlotKey;
@@ -749,15 +758,13 @@ class _BottomHand extends StatelessWidget {
                                 terrain: state.currentTerrain,
                               ),
                             );
-
                             await pageState._flyCardToSlot(
                               cardId: c.id,
                               sourceKey: itemKey,
                               destKey: destKey,
                               flyingChild: flying,
                             );
-
-                            // dopo l'animazione → aggiorna modello (rimuove dalla mano, mostra sul campo)
+                            // dopo il volo aggiorno lo stato (ora sono certo che è valido)
                             cubit.selectCard(c);
                           },
                           child: cardContent,
@@ -882,12 +889,13 @@ class _RoundRecapOverlay extends StatelessWidget {
 
     String? verdict;
     if (isFinal) {
-      if (scoreMe > scoreOpp)
+      if (scoreMe > scoreOpp) {
         verdict = 'Hai VINTO! 🎉';
-      else if (scoreMe < scoreOpp)
+      } else if (scoreMe < scoreOpp) {
         verdict = 'Hai PERSO 😬';
-      else
+      } else {
         verdict = 'PAREGGIO 🤝';
+      }
     }
 
     return Container(

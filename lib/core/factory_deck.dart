@@ -1,40 +1,6 @@
 import 'dart:math';
 import 'package:monster/core/models/models.dart';
 
-/// ---- COSTO MANA SU 4 TERRENI ----------------------------------------------
-const int kMinManaCost = 1;
-const int kMaxManaCost = 10;
-
-const double kPeakWeight = 0.65;
-const double kMeanWeight = 0.35;
-
-const double kSprintMultiplier = 1.00;
-const double kBlockMultiplier = 0.85;
-// per le instant, per ora un costo base leggero:
-const int kInstantBaseCost = 2;
-
-const double kScale = 0.45;
-
-int _finalizeCost(double x) =>
-    x.isNaN ? kMinManaCost : x.ceil().clamp(kMinManaCost, kMaxManaCost);
-
-int _computeManaCost4({
-  required bool isSprint,
-  required int terra,
-  required int mare,
-  required int aria,
-  required int sabbia,
-}) {
-  final vals = [terra, mare, aria, sabbia];
-  final peak = vals.reduce(max).toDouble();
-  final mean = vals.reduce((a, b) => a + b) / vals.length;
-
-  final raw = kPeakWeight * peak + kMeanWeight * mean;
-  final mult = isSprint ? kSprintMultiplier : kBlockMultiplier;
-
-  return _finalizeCost(raw * mult * kScale);
-}
-
 /// ---- HELPERS ---------------------------------------------------------------
 GameCard _s(
   String name,
