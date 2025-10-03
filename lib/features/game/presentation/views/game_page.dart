@@ -121,14 +121,21 @@ class _GamePageState extends State<GamePage> {
                         ),
                         child: Column(
                           children: [
-                            _OpponentField(terrain: terrain, state: state),
+                            Flexible(
+                              child: _OpponentField(
+                                terrain: terrain,
+                                state: state,
+                              ),
+                            ),
                             const SizedBox(height: 8),
-                            _MyField(
-                              terrain: terrain,
-                              state: state,
-                              cubit: cubit,
-                              sprintSlotKey: _mySprintSlotKey,
-                              blockSlotKey: _myBlockSlotKey,
+                            Flexible(
+                              child: _MyField(
+                                terrain: terrain,
+                                state: state,
+                                cubit: cubit,
+                                sprintSlotKey: _mySprintSlotKey,
+                                blockSlotKey: _myBlockSlotKey,
+                              ),
                             ),
                           ],
                         ),
@@ -197,74 +204,7 @@ class _TopOpponentBar extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              _DeckStack(),
-              const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 60,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: 5,
-                    separatorBuilder: (_, __) => const SizedBox(width: 8),
-                    itemBuilder: (_, __) => const _SmallBackCard(),
-                  ),
-                ),
-              ),
-            ],
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _SmallBackCard extends StatelessWidget {
-  const _SmallBackCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 56,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3943A5), Color(0xFF222856)],
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white24),
-      ),
-    );
-  }
-}
-
-class _DeckStack extends StatelessWidget {
-  const _DeckStack();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 34,
-      height: 48,
-      child: Stack(
-        children: List.generate(3, (i) {
-          return Positioned(
-            left: i * 4,
-            top: i * 3,
-            child: Container(
-              width: 28,
-              height: 44,
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3943A5), Color(0xFF222856)],
-                ),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white24),
-              ),
-            ),
-          );
-        }),
       ),
     );
   }
@@ -365,7 +305,6 @@ class _OpponentField extends StatelessWidget {
     final hasOppBlock = opp?.block != null && !oppBlockDestroyed;
 
     return _FieldArea(
-      height: 200,
       label: 'Avversario',
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -477,7 +416,6 @@ class _MyField extends StatelessWidget {
     }
 
     return _FieldArea(
-      height: 200,
       label: 'Tu',
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -614,9 +552,7 @@ class _PlaceSlot extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Text(
-              kind == CardKind.sprint
-                  ? 'Trascina qui Sprint'
-                  : 'Trascina qui Blocco',
+              kind == CardKind.sprint ? 'Sprinter' : 'Blocker',
               style: const TextStyle(color: Colors.white38, fontSize: 11),
               textAlign: TextAlign.center,
             ),
@@ -685,14 +621,10 @@ class _PlaceSlot extends StatelessWidget {
 }
 
 class _FieldArea extends StatelessWidget {
-  final double height;
+  final double? height;
   final String label;
   final Widget child;
-  const _FieldArea({
-    required this.height,
-    required this.label,
-    required this.child,
-  });
+  const _FieldArea({this.height, required this.label, required this.child});
 
   @override
   Widget build(BuildContext context) {
