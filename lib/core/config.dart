@@ -4,7 +4,7 @@ const int kMaxRounds = 16; // limite hard
 const int kMaxSameTerrain = 4; // ogni terreno può uscire al massimo 4 volte
 
 // TEMPI
-const int kRoundSeconds = 35;
+const int kRoundSeconds = 3005;
 const int kRevealSeconds = 35;
 const bool kEnableBetweenRoundsPause = true;
 const int kBetweenRoundsPauseSeconds = 5;

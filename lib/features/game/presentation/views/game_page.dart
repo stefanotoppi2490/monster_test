@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -334,29 +333,20 @@ class _OpponentField extends StatelessWidget {
 
     return _FieldArea(
       label: 'Avversario',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      score: state.opp.score,
+      cardsRow: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: kFieldCardWidth,
-                height: kFieldCardHeight,
-                child: sprintWidget,
-              ),
-              const SizedBox(width: 16),
-              SizedBox(
-                width: kFieldCardWidth,
-                height: kFieldCardHeight,
-                child: blockWidget,
-              ),
-            ],
+          SizedBox(
+            width: kFieldCardWidth,
+            height: kFieldCardHeight,
+            child: sprintWidget,
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Punteggio: ${state.opp.score}',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: kFieldCardWidth,
+            height: kFieldCardHeight,
+            child: blockWidget,
           ),
         ],
       ),
@@ -431,57 +421,48 @@ class _MyField extends StatelessWidget {
 
     return _FieldArea(
       label: 'Tu',
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      score: state.me.score,
+      cardsRow: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _PlaceSlot(
-                key: sprintSlotKey,
-                kind: CardKind.sprint,
-                state: state,
-                cubit: cubit,
-                // In drafting mostro il dorso se ho scelto; se distrutta, niente
-                showBack: hasSprintBase && !showReveal && !mySprintDestroyed,
-                // In reveal/scoring mostro la faccia se non distrutta
-                faceUp: showReveal && hasSprint,
-                front: hasSprint
-                    ? wrapWithDelta(
-                        child: FlipCardFace(
-                          card: state.myPrivate.choice.sprint!,
-                          terrain: terrain,
-                        ),
-                        delta: sprintDelta,
-                      )
-                    : null, // distrutta => nulla
-                isMine: true,
-              ),
-              const SizedBox(width: 16),
-              _PlaceSlot(
-                key: blockSlotKey,
-                kind: CardKind.block,
-                state: state,
-                cubit: cubit,
-                showBack: hasBlockBase && !showReveal && !myBlockDestroyed,
-                faceUp: showReveal && hasBlock,
-                front: hasBlock
-                    ? wrapWithDelta(
-                        child: FlipCardFace(
-                          card: state.myPrivate.choice.block!,
-                          terrain: terrain,
-                        ),
-                        delta: blockDelta,
-                      )
-                    : null,
-                isMine: true,
-              ),
-            ],
+          _PlaceSlot(
+            key: sprintSlotKey,
+            kind: CardKind.sprint,
+            state: state,
+            cubit: cubit,
+            // In drafting mostro il dorso se ho scelto; se distrutta, niente
+            showBack: hasSprintBase && !showReveal && !mySprintDestroyed,
+            // In reveal/scoring mostro la faccia se non distrutta
+            faceUp: showReveal && hasSprint,
+            front: hasSprint
+                ? wrapWithDelta(
+                    child: FlipCardFace(
+                      card: state.myPrivate.choice.sprint!,
+                      terrain: terrain,
+                    ),
+                    delta: sprintDelta,
+                  )
+                : null, // distrutta => nulla
+            isMine: true,
           ),
-          const SizedBox(height: 6),
-          Text(
-            'Punteggio: ${state.me.score}',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          const SizedBox(width: 8),
+          _PlaceSlot(
+            key: blockSlotKey,
+            kind: CardKind.block,
+            state: state,
+            cubit: cubit,
+            showBack: hasBlockBase && !showReveal && !myBlockDestroyed,
+            faceUp: showReveal && hasBlock,
+            front: hasBlock
+                ? wrapWithDelta(
+                    child: FlipCardFace(
+                      card: state.myPrivate.choice.block!,
+                      terrain: terrain,
+                    ),
+                    delta: blockDelta,
+                  )
+                : null,
+            isMine: true,
           ),
         ],
       ),
@@ -631,38 +612,54 @@ class _PlaceSlot extends StatelessWidget {
 }
 
 class _FieldArea extends StatelessWidget {
-  final double? height;
   final String label;
-  final Widget child;
-  const _FieldArea({this.height, required this.label, required this.child});
+  final int score;
+  final Widget cardsRow;
+  const _FieldArea({
+    required this.label,
+    required this.score,
+    required this.cardsRow,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF151836), Color(0xFF101223)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
-      padding: const EdgeInsets.all(10),
-      child: Stack(
-        children: [
-          Positioned(
-            top: 20,
-            left: 0,
-            child: Text(
+    return Column(
+      children: [
+        Row(
+          children: [
+            Text(
               label,
-              style: const TextStyle(color: Colors.white38, fontSize: 12),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
+            Text(
+              '$score',
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          height: kCardHeight,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF151836), Color(0xFF101223)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: Colors.white12),
           ),
-          Center(child: child),
-        ],
-      ),
+          padding: const EdgeInsets.all(8),
+          child: Row(
+            children: [
+              // Prima colonna: nome e punteggio
+              const SizedBox(width: 8),
+              // Seconda colonna: riga con le due carte
+              Expanded(flex: 2, child: cardsRow),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
