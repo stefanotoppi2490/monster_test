@@ -220,38 +220,27 @@ class GameCubit extends Cubit<GameState> {
 
   // ---------- REVEAL ----------
   void _lockChoicesAndReveal() {
-    final (deckAfter, oppHand) = repo.draw(_oppDeck, kHandSize);
-    _oppDeck = deckAfter;
+    // ❗ Non rigenerare le carte dell’avversario.
+    // Usiamo esattamente quelle già scelte durante il drafting (state.oppPreview).
 
-    final oppOptionsSprint = oppHand
-        .where((c) => c.kind == CardKind.sprint)
-        .toList();
-    final oppOptionsBlock = oppHand
-        .where((c) => c.kind == CardKind.block)
-        .toList();
+    final opp = state.oppPreview; // può essere null o parziale
 
-    GameCard? oppSprint;
-    GameCard? oppBlock;
-    if (_rng.nextBool() && oppOptionsSprint.isNotEmpty) {
-      oppSprint = oppOptionsSprint[_rng.nextInt(oppOptionsSprint.length)];
-    }
-    if (_rng.nextBool() && oppOptionsBlock.isNotEmpty) {
-      oppBlock = oppOptionsBlock[_rng.nextInt(oppOptionsBlock.length)];
-    }
+    // Prepara la lista per triggerare i flip (solo se presenti)
+    final revealed = <String>[
+      if (state.myPrivate.choice.sprint != null)
+        state.myPrivate.choice.sprint!.id,
+      if (state.myPrivate.choice.block != null)
+        state.myPrivate.choice.block!.id,
+      if (opp?.sprint != null) opp!.sprint!.id,
+      if (opp?.block != null) opp!.block!.id,
+    ];
 
     emit(
       state.copyWith(
         phase: Phase.reveal,
         secondsLeft: kRevealSeconds,
-        oppPreview: SecretChoice(sprint: oppSprint, block: oppBlock),
-        revealedCardIds: [
-          if (state.myPrivate.choice.sprint != null)
-            state.myPrivate.choice.sprint!.id,
-          if (state.myPrivate.choice.block != null)
-            state.myPrivate.choice.block!.id,
-          if (oppSprint != null) oppSprint.id,
-          if (oppBlock != null) oppBlock.id,
-        ],
+        // ❗ oppPreview INVARIATO: non lo tocchiamo
+        revealedCardIds: revealed,
         effects: const BoardEffects(), // reset effetti ad inizio reveal
       ),
     );
@@ -334,7 +323,6 @@ class GameCubit extends Cubit<GameState> {
         results: [...state.results, res],
         me: state.me.copyWith(score: state.me.score + myDelta),
         opp: state.opp.copyWith(score: state.opp.score + oppDelta),
-        oppPreview: null,
       ),
     );
 
