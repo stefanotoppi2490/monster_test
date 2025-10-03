@@ -10,8 +10,8 @@ class FlipCardFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: kCardWidth,
-      height: kCardHeight,
+      width: kFieldCardWidth,
+      height: kFieldCardHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white),

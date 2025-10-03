@@ -248,61 +248,93 @@ class _OpponentField extends StatelessWidget {
   final GameState state;
   const _OpponentField({required this.terrain, required this.state});
 
+  // slot vuoto (placeholder)
+  Widget _emptySlot(String label) {
+    return Container(
+      width: kFieldCardWidth,
+      height: kFieldCardHeight,
+      decoration: BoxDecoration(
+        color: Colors.white10.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white38, fontSize: 11),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
+  // badge ±x
+  Widget _withDelta(Widget child, int delta) {
+    if (delta == 0) return child;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        Positioned(right: -6, top: -6, child: _DeltaBadge(delta)),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // In reveal/scoring/recap mostriamo le carte del round corrente
-    final bool showingCurrent =
+    final inDrafting = state.phase == Phase.drafting;
+    final inRevealOrAfter =
         state.phase == Phase.reveal ||
         state.phase == Phase.scoring ||
         state.phase == Phase.recap;
 
-    final SecretChoice? opp = showingCurrent
-        ? state.oppPreview
-        : (state.results.isNotEmpty ? state.results.last.opp : null);
-
-    final showReveal = state.phase != Phase.drafting;
-
-    // Effetti/distruzioni lato avversario
+    // Effetti lato avversario
     final eff = state.effects;
-    final bool oppSprintDestroyed = eff.destroyOppSprint;
-    final bool oppBlockDestroyed = eff.destroyOppBlock;
-    final int oppSprintDelta = eff.oppSprintDelta;
-    final int oppBlockDelta = eff.oppBlockDelta;
+    final oppSprintDestroyed = eff.destroyOppSprint;
+    final oppBlockDestroyed = eff.destroyOppBlock;
+    final oppSprintDelta = eff.oppSprintDelta;
+    final oppBlockDelta = eff.oppBlockDelta;
 
-    // Helper per sovrapporre il badge delta
-    Widget _wrapWithDelta({required Widget child, required int delta}) {
-      if (delta == 0) return child;
-      final txt = delta > 0 ? '+$delta' : '$delta';
-      return Stack(
-        clipBehavior: Clip.none,
-        children: [
-          child,
-          Positioned(
-            right: -6,
-            top: -6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.black87,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: Text(
-                txt,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 11,
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
+    // Scelte (possono arrivare durante il drafting). Può essere null.
+    final opp = state.oppPreview;
+    final oppSprint = opp?.sprint;
+    final oppBlock = opp?.block;
 
-    final hasOppSprint = opp?.sprint != null && !oppSprintDestroyed;
-    final hasOppBlock = opp?.block != null && !oppBlockDestroyed;
+    // Stato slot indipendente per Sprint/Block
+    final sprintChosen = oppSprint != null && !oppSprintDestroyed;
+    final blockChosen = oppBlock != null && !oppBlockDestroyed;
+
+    // In reveal/scoring mostriamo la faccia; in drafting mostriamo COPERTA se scelto,
+    // altrimenti lo slot resta VUOTO.
+    final Widget sprintWidget = () {
+      if (inRevealOrAfter && sprintChosen) {
+        return _withDelta(
+          FlipCardFace(card: oppSprint!, terrain: terrain),
+          oppSprintDelta,
+        );
+      }
+      if (inDrafting) {
+        return sprintChosen
+            ? const _FaceDownSlot(faceUp: false) // coperta
+            : _emptySlot('Sprinter'); // vuoto
+      }
+      // altri casi (es. distrutto o non scelto in reveal)
+      return _emptySlot('Sprinter');
+    }();
+
+    final Widget blockWidget = () {
+      if (inRevealOrAfter && blockChosen) {
+        return _withDelta(
+          FlipCardFace(card: oppBlock!, terrain: terrain),
+          oppBlockDelta,
+        );
+      }
+      if (inDrafting) {
+        return blockChosen
+            ? const _FaceDownSlot(faceUp: false) // coperta
+            : _emptySlot('Blocker'); // vuoto
+      }
+      return _emptySlot('Blocker');
+    }();
 
     return _FieldArea(
       label: 'Avversario',
@@ -312,30 +344,16 @@ class _OpponentField extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _FaceDownSlot(
-                faceUp: showReveal && hasOppSprint,
-                front: (!hasOppSprint || opp?.sprint == null)
-                    ? null
-                    : _wrapWithDelta(
-                        child: FlipCardFace(
-                          card: opp!.sprint!,
-                          terrain: terrain,
-                        ),
-                        delta: oppSprintDelta,
-                      ),
+              SizedBox(
+                width: kFieldCardWidth,
+                height: kFieldCardHeight,
+                child: sprintWidget,
               ),
               const SizedBox(width: 16),
-              _FaceDownSlot(
-                faceUp: showReveal && hasOppBlock,
-                front: (!hasOppBlock || opp?.block == null)
-                    ? null
-                    : _wrapWithDelta(
-                        child: FlipCardFace(
-                          card: opp!.block!,
-                          terrain: terrain,
-                        ),
-                        delta: oppBlockDelta,
-                      ),
+              SizedBox(
+                width: kFieldCardWidth,
+                height: kFieldCardHeight,
+                child: blockWidget,
               ),
             ],
           ),
@@ -529,8 +547,8 @@ class _PlaceSlot extends StatelessWidget {
         if (slotIsEmpty) {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            width: kCardWidth,
-            height: kCardHeight,
+            width: kFieldCardWidth,
+            height: kFieldCardHeight,
             decoration: BoxDecoration(
               color: hovering
                   ? Colors.white10.withOpacity(0.12)
@@ -587,8 +605,8 @@ class _PlaceSlot extends StatelessWidget {
 
                   // animiamo la stessa faccia scoperta in size 110x150 (dimensione slot)
                   final flying = SizedBox(
-                    width: 110,
-                    height: 150,
+                    width: kFieldCardWidth,
+                    height: kFieldCardHeight,
                     child: front!,
                   );
 
@@ -604,8 +622,8 @@ class _PlaceSlot extends StatelessWidget {
                   cubit.undoChoice(kind);
                 },
                 child: SizedBox(
-                  width: kCardWidth,
-                  height: kCardHeight,
+                  width: kFieldCardWidth,
+                  height: kFieldCardHeight,
                   child: front,
                 ),
               );
@@ -694,14 +712,14 @@ class _FaceDownSlotState extends State<_FaceDownSlot>
       child: widget.faceUp
           ? SizedBox(
               key: const ValueKey(true),
-              width: 110,
-              height: 150,
+              width: kFieldCardWidth,
+              height: kFieldCardHeight,
               child: widget.front ?? const SizedBox(),
             )
           : Container(
               key: const ValueKey(false),
-              width: 110,
-              height: 150,
+              width: kFieldCardWidth,
+              height: kFieldCardHeight,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFF3943A5), Color(0xFF222856)],
@@ -810,8 +828,8 @@ class _BottomHand extends StatelessWidget {
                                 : pageState._myBlockSlotKey;
 
                             final flying = SizedBox(
-                              width: kCardWidth,
-                              height: kCardHeight,
+                              width: kFieldCardWidth,
+                              height: kFieldCardHeight,
                               child: CardChip(
                                 card: c,
                                 terrain: state.currentTerrain,

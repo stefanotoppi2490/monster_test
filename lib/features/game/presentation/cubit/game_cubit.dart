@@ -51,7 +51,7 @@ class GameCubit extends Cubit<GameState> {
         ),
         results: [],
         revealedCardIds: [],
-        oppPreview: const SecretChoice(),
+        oppPreview: null,
         effects: const BoardEffects(), // reset effetti
       ),
     );
@@ -59,11 +59,86 @@ class GameCubit extends Cubit<GameState> {
     _startTimer();
   }
 
+  void _maybeSelectOpponentCards() {
+    // Probabilità basata sul tempo rimanente: più alta all'inizio, più bassa alla fine
+    final timeLeft = state.secondsLeft;
+    final totalTime = kRoundSeconds;
+    final progress = (totalTime - timeLeft) / totalTime;
+
+    // Probabilità che aumenta nel tempo: 5% all'inizio, 25% alla fine
+    final baseProbability = 0.05 + (progress * 0.20);
+
+    if (_rng.nextDouble() < baseProbability) {
+      _selectRandomOpponentCard();
+    }
+  }
+
+  void _selectRandomOpponentCard() {
+    final p = state.oppPreview; // può essere null
+
+    final hasSprint = p?.sprint != null;
+    final hasBlock = p?.block != null;
+
+    // Nessuna scelta ancora → scegli uno dei due a caso
+    if (!hasSprint && !hasBlock) {
+      _rng.nextBool() ? _selectOpponentSprint() : _selectOpponentBlock();
+      return;
+    }
+
+    // Se manca uno dei due, completa
+    if (!hasSprint) {
+      _selectOpponentSprint();
+      return;
+    }
+    if (!hasBlock) {
+      _selectOpponentBlock();
+      return;
+    }
+
+    // Se già entrambi scelti → niente
+  }
+
+  void _selectOpponentSprint() {
+    final availableSprints = _oppDeck.cards
+        .where((c) => c.kind == CardKind.sprint)
+        .toList();
+    if (availableSprints.isNotEmpty) {
+      final selectedCard =
+          availableSprints[_rng.nextInt(availableSprints.length)];
+      final currentOppPreview = state.oppPreview;
+      final newPreview = SecretChoice(
+        sprint: selectedCard,
+        block: currentOppPreview?.block,
+      );
+      emit(state.copyWith(oppPreview: newPreview));
+    }
+  }
+
+  void _selectOpponentBlock() {
+    final availableBlocks = _oppDeck.cards
+        .where((c) => c.kind == CardKind.block)
+        .toList();
+    if (availableBlocks.isNotEmpty) {
+      final selectedCard =
+          availableBlocks[_rng.nextInt(availableBlocks.length)];
+      final currentOppPreview = state.oppPreview;
+      final newPreview = SecretChoice(
+        sprint: currentOppPreview?.sprint,
+        block: selectedCard,
+      );
+      emit(state.copyWith(oppPreview: newPreview));
+    }
+  }
+
   void _startTimer() {
     _ticker?.cancel();
     _ticker = Timer.periodic(const Duration(seconds: 1), (t) {
       final left = state.secondsLeft - 1;
       if (left > 0) {
+        // Selezione randomica dell'avversario durante il round
+        if (state.phase == Phase.drafting) {
+          _maybeSelectOpponentCards();
+        }
         emit(state.copyWith(secondsLeft: left));
         return;
       }
@@ -308,7 +383,7 @@ class GameCubit extends Cubit<GameState> {
         opp: state.opp.copyWith(
           mana: (state.opp.mana + kBaseManaPerTurn).clamp(0, kMaxManaCap),
         ),
-        oppPreview: const SecretChoice(),
+        oppPreview: null,
         effects: const BoardEffects(), // reset effetti per nuovo round
       ),
     );

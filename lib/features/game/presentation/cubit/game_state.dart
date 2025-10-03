@@ -108,7 +108,7 @@ class GameState {
       myPrivate: myPriv,
       results: results,
       revealedCardIds: revealed,
-      oppPreview: oppPreview,
+      oppPreview: null,
       effects: const BoardEffects(), // ⬅️ reset
     );
   }
