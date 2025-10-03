@@ -8,6 +8,16 @@ import 'package:monster/features/game/presentation/cubit/game_state.dart';
 import 'package:monster/features/game/presentation/widgets/card_chip.dart';
 import 'package:monster/features/game/presentation/widgets/flip_card_face.dart';
 
+// Funzione per mappare i terreni agli sfondi
+String _getBackgroundImagePath(Terrain terrain) {
+  return switch (terrain) {
+    Terrain.acqua => 'assets/images/sfondo_acqua.png',
+    Terrain.sabbia => 'assets/images/sfondo_sabbia.png',
+    Terrain.fango => 'assets/images/sfondo_fango.png',
+    Terrain.asfalto => 'assets/images/sfondo_asfalto.png',
+  };
+}
+
 class GamePage extends StatefulWidget {
   const GamePage({super.key});
 
@@ -105,61 +115,76 @@ class _GamePageState extends State<GamePage> {
       builder: (context, state) {
         final terrain = state.currentTerrain;
         return Scaffold(
-          backgroundColor: const Color(0xFF0E1020),
-          body: SafeArea(
-            child: Stack(
-              children: [
-                Column(
+          body: Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(_getBackgroundImagePath(terrain)),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: Container(
+              color: Colors.black.withOpacity(
+                0.3,
+              ), // Overlay semi-trasparente per leggibilità
+              child: SafeArea(
+                child: Stack(
                   children: [
-                    _TopOpponentBar(state: state),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                    Column(
+                      children: [
+                        _TopOpponentBar(state: state),
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: Column(
+                              children: [
+                                Flexible(
+                                  child: _OpponentField(
+                                    terrain: terrain,
+                                    state: state,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Flexible(
+                                  child: _MyField(
+                                    terrain: terrain,
+                                    state: state,
+                                    cubit: cubit,
+                                    sprintSlotKey: _mySprintSlotKey,
+                                    blockSlotKey: _myBlockSlotKey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
-                        child: Column(
-                          children: [
-                            Flexible(
-                              child: _OpponentField(
-                                terrain: terrain,
-                                state: state,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Flexible(
-                              child: _MyField(
-                                terrain: terrain,
-                                state: state,
-                                cubit: cubit,
-                                sprintSlotKey: _mySprintSlotKey,
-                                blockSlotKey: _myBlockSlotKey,
-                              ),
-                            ),
-                          ],
+                        _BottomHand(state: state, cubit: cubit),
+                      ],
+                    ),
+
+                    // --- overlay recap ---
+                    if (state.phase == Phase.recap ||
+                        state.phase == Phase.finished)
+                      Positioned.fill(
+                        child: _RoundRecapOverlay(
+                          round: state.roundIndex,
+                          seconds: state.secondsLeft,
+                          scoreMe: state.me.score,
+                          scoreOpp: state.opp.score,
+                          isFinal: state.phase == Phase.finished, // 👈 nuovo
+                          onNewMatch: () => context
+                              .read<GameCubit>()
+                              .startMatch(), // 👈 nuovo
+                          totalRounds: state
+                              .terrainOrder
+                              .length, // 👈 opzionale per testo
                         ),
                       ),
-                    ),
-                    _BottomHand(state: state, cubit: cubit),
                   ],
                 ),
-
-                // --- overlay recap ---
-                if (state.phase == Phase.recap || state.phase == Phase.finished)
-                  Positioned.fill(
-                    child: _RoundRecapOverlay(
-                      round: state.roundIndex,
-                      seconds: state.secondsLeft,
-                      scoreMe: state.me.score,
-                      scoreOpp: state.opp.score,
-                      isFinal: state.phase == Phase.finished, // 👈 nuovo
-                      onNewMatch: () =>
-                          context.read<GameCubit>().startMatch(), // 👈 nuovo
-                      totalRounds:
-                          state.terrainOrder.length, // 👈 opzionale per testo
-                    ),
-                  ),
-              ],
+              ),
             ),
           ),
         );
@@ -252,7 +277,7 @@ class _OpponentField extends StatelessWidget {
     return Container(
       width: kFieldCardWidth,
       height: kFieldCardHeight,
-      decoration: BoxDecoration(color: Colors.white10.withOpacity(0.05)),
+      decoration: BoxDecoration(color: Colors.white10.withOpacity(0.2)),
       alignment: Alignment.center,
       child: Text(
         label,
@@ -528,8 +553,8 @@ class _PlaceSlot extends StatelessWidget {
             height: kFieldCardHeight,
             decoration: BoxDecoration(
               color: hovering
-                  ? Colors.white10.withOpacity(0.12)
-                  : Colors.white10.withOpacity(0.05),
+                  ? Colors.white.withOpacity(0.8)
+                  : Colors.white10.withOpacity(0.2),
 
               boxShadow: hovering
                   ? const [
@@ -631,9 +656,10 @@ class _FieldArea extends StatelessWidget {
               label,
               style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
+            Spacer(),
             Text(
-              '$score',
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
+              '$score punti',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ],
         ),
@@ -641,13 +667,9 @@ class _FieldArea extends StatelessWidget {
         Container(
           height: kCardHeight,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF151836), Color(0xFF101223)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white12),
+            color: Colors.white10,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Colors.white24),
           ),
           padding: const EdgeInsets.all(8),
           child: Row(
@@ -717,10 +739,7 @@ class _BottomHand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Color(0xFF12142A),
-        border: Border(top: BorderSide(color: Colors.white10)),
-      ),
+      decoration: BoxDecoration(color: Colors.white10),
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
       child: Column(
         children: [
@@ -768,7 +787,7 @@ class _BottomHand extends StatelessWidget {
 
                     return AnimatedOpacity(
                       duration: const Duration(milliseconds: 120),
-                      opacity: (disabled || isFlying) ? 0.25 : 1.0,
+                      opacity: (disabled || isFlying) ? 0.6 : 1.0,
                       child: IgnorePointer(
                         ignoring: disabled || isFlying,
                         child: InkWell(
