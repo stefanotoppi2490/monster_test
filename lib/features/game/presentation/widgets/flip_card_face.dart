@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:monster/core/config.dart';
 import 'package:monster/core/models/models.dart';
 
 class FlipCardFace extends StatelessWidget {
@@ -9,6 +10,8 @@ class FlipCardFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: kCardWidth,
+      height: kCardHeight,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white),

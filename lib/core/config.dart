@@ -14,6 +14,10 @@ const int kBaseManaPerTurn = 5;
 const int kMaxManaCap = 20;
 
 // MANO
-const int kHandSize = 5;       // mano fissa a 5
+const int kHandSize = 5; // mano fissa a 5
+
+// DIMENSIONI CARTE
+const double kCardWidth = 150.0; // larghezza fissa delle carte
+const double kCardHeight = 210.0;  // altezza fissa delle carte
 
 // (costi sprint/block fissi NON servono più: i costi ora sono per-carta)

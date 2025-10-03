@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:monster/core/config.dart';
 import 'package:monster/core/models/models.dart';
 import 'package:monster/features/game/presentation/cubit/game_cubit.dart';
 import 'package:monster/features/game/presentation/cubit/game_state.dart';
@@ -32,13 +33,13 @@ class _GamePageState extends State<GamePage> {
 
   final GlobalKey _handListKey = GlobalKey(debugLabel: 'handList');
 
-  // helper: calcola un Rect al centro della lista mano con size 120x160
+  // helper: calcola un Rect al centro della lista mano con dimensioni dal config
   Rect? _centerRectOfHand() {
     final box = _handListKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return null;
     final pos = box.localToGlobal(Offset.zero);
     final size = box.size;
-    final w = 120.0, h = 160.0;
+    final w = kCardWidth, h = kCardHeight;
     final left = pos.dx + (size.width - w) / 2;
     final top = pos.dy + (size.height - h) / 2;
     return Rect.fromLTWH(left, top, w, h);
@@ -590,8 +591,8 @@ class _PlaceSlot extends StatelessWidget {
         if (slotIsEmpty) {
           return AnimatedContainer(
             duration: const Duration(milliseconds: 120),
-            width: 110,
-            height: 150,
+            width: kCardWidth,
+            height: kCardHeight,
             decoration: BoxDecoration(
               color: hovering
                   ? Colors.white10.withOpacity(0.12)
@@ -666,7 +667,11 @@ class _PlaceSlot extends StatelessWidget {
                   // rimetti la carta in mano (refund mana ecc. lato cubit)
                   cubit.undoChoice(kind);
                 },
-                child: SizedBox(width: 110, height: 150, child: front),
+                child: SizedBox(
+                  width: kCardWidth,
+                  height: kCardHeight,
+                  child: front,
+                ),
               );
             },
           );
@@ -802,7 +807,7 @@ class _BottomHand extends StatelessWidget {
 
           // Mano
           SizedBox(
-            height: 160,
+            height: kCardHeight,
             child: Builder(
               builder: (ctx) {
                 final pageState = ctx.findAncestorStateOfType<_GamePageState>();
@@ -834,8 +839,8 @@ class _BottomHand extends StatelessWidget {
 
                     final cardContent = SizedBox(
                       key: itemKey,
-                      width: 180,
-                      height: 250,
+                      width: kCardWidth,
+                      height: kCardHeight,
                       child: CardChip(card: c, terrain: state.currentTerrain),
                     );
 
@@ -873,8 +878,8 @@ class _BottomHand extends StatelessWidget {
                                 : pageState._myBlockSlotKey;
 
                             final flying = SizedBox(
-                              width: 180,
-                              height: 250,
+                              width: kCardWidth,
+                              height: kCardHeight,
                               child: CardChip(
                                 card: c,
                                 terrain: state.currentTerrain,
