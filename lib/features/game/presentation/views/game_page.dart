@@ -253,11 +253,7 @@ class _OpponentField extends StatelessWidget {
     return Container(
       width: kFieldCardWidth,
       height: kFieldCardHeight,
-      decoration: BoxDecoration(
-        color: Colors.white10.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white24),
-      ),
+      decoration: BoxDecoration(color: Colors.white10.withOpacity(0.05)),
       alignment: Alignment.center,
       child: Text(
         label,
@@ -308,7 +304,7 @@ class _OpponentField extends StatelessWidget {
     final Widget sprintWidget = () {
       if (inRevealOrAfter && sprintChosen) {
         return _withDelta(
-          FlipCardFace(card: oppSprint!, terrain: terrain),
+          FlipCardFace(card: oppSprint, terrain: terrain),
           oppSprintDelta,
         );
       }
@@ -324,7 +320,7 @@ class _OpponentField extends StatelessWidget {
     final Widget blockWidget = () {
       if (inRevealOrAfter && blockChosen) {
         return _withDelta(
-          FlipCardFace(card: oppBlock!, terrain: terrain),
+          FlipCardFace(card: oppBlock, terrain: terrain),
           oppBlockDelta,
         );
       }
@@ -553,7 +549,6 @@ class _PlaceSlot extends StatelessWidget {
               color: hovering
                   ? Colors.white10.withOpacity(0.12)
                   : Colors.white10.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(14),
 
               boxShadow: hovering
                   ? const [
@@ -658,7 +653,7 @@ class _FieldArea extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            top: 0,
+            top: 20,
             left: 0,
             child: Text(
               label,
@@ -681,30 +676,13 @@ class _FaceDownSlot extends StatefulWidget {
   State<_FaceDownSlot> createState() => _FaceDownSlotState();
 }
 
-class _FaceDownSlotState extends State<_FaceDownSlot>
-    with SingleTickerProviderStateMixin {
+class _FaceDownSlotState extends State<_FaceDownSlot> {
   @override
   Widget build(BuildContext context) {
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 500),
       transitionBuilder: (child, anim) {
-        final rotate = Tween(begin: 3.1415, end: 0.0).animate(anim);
-        return AnimatedBuilder(
-          animation: rotate,
-          child: child,
-          builder: (ctx, w) {
-            final isUnder = (ValueKey(widget.faceUp) != child.key);
-            final tilt = (anim.value - 0.5).abs() * 0.002;
-            final value = isUnder
-                ? min(rotate.value, 3.1415 / 2)
-                : rotate.value;
-            return Transform(
-              transform: Matrix4.rotationY(value)..setEntry(3, 0, tilt),
-              alignment: Alignment.center,
-              child: w,
-            );
-          },
-        );
+        return FadeTransition(opacity: anim, child: child);
       },
       child: widget.faceUp
           ? SizedBox(

@@ -9,7 +9,7 @@ class FlipCardFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: kFieldCardWidth,
       height: kFieldCardHeight,
       child: ClipRRect(
