@@ -5,7 +5,7 @@ enum Phase { drafting, reveal, recap, scoring, transition, finished }
 
 class PlayerPublic {
   final int score;
-  final int mana; // visibile il totale
+  final int mana;
   const PlayerPublic({required this.score, required this.mana});
 
   PlayerPublic copyWith({int? score, int? mana}) =>
@@ -22,12 +22,8 @@ class PlayerPrivate {
 }
 
 class GameState {
-  /// Indice round corrente: 0..(terrainOrder.length - 1)
   final int roundIndex;
-
-  /// Ordine dei terreni per la partita (lunghezza = kRounds, vincolo max 4 per terreno)
   final List<Terrain> terrainOrder;
-
   final Phase phase;
   final int secondsLeft;
 
@@ -36,15 +32,13 @@ class GameState {
 
   final PlayerPrivate myPrivate;
 
-  /// Storico risultati round passati
   final List<RoundResult> results;
-
-  /// Id carte rivelate per triggerare flip animazioni
   final List<String> revealedCardIds;
 
-  /// Scelte dell’avversario nel round corrente (per fase reveal/recap).
-  /// Può essere null (ad es. dopo lo scoring la resetti).
   final SecretChoice? oppPreview;
+
+  // ⬇️ Effetti trick del round corrente
+  final BoardEffects effects;
 
   const GameState({
     required this.roundIndex,
@@ -57,15 +51,12 @@ class GameState {
     required this.results,
     required this.revealedCardIds,
     required this.oppPreview,
+    required this.effects,
   });
 
-  /// Terreno del round corrente (safe se l’ordine è non-vuoto)
   Terrain get currentTerrain => terrainOrder[roundIndex];
-
-  /// True se siamo all’ultimo round della partita
   bool get lastRound => roundIndex >= terrainOrder.length - 1;
 
-  // Sentinel per consentire di "passare null" a oppPreview dentro copyWith
   static const Object _sentinel = Object();
 
   GameState copyWith({
@@ -78,12 +69,8 @@ class GameState {
     PlayerPrivate? myPrivate,
     List<RoundResult>? results,
     List<String>? revealedCardIds,
-
-    /// Usa questo parametro per poter settare esplicitamente null.
-    /// Esempio:
-    ///   state.copyWith(oppPreview: null)  // azzera
-    ///   state.copyWith()                  // lascia invariato
     Object? oppPreview = _sentinel,
+    BoardEffects? effects,
   }) {
     return GameState(
       roundIndex: roundIndex ?? this.roundIndex,
@@ -98,6 +85,7 @@ class GameState {
       oppPreview: identical(oppPreview, _sentinel)
           ? this.oppPreview
           : oppPreview as SecretChoice?,
+      effects: effects ?? this.effects,
     );
   }
 
@@ -114,13 +102,14 @@ class GameState {
       roundIndex: 0,
       terrainOrder: order,
       phase: Phase.drafting,
-      secondsLeft: kRoundSeconds, // <-- usa config
+      secondsLeft: kRoundSeconds,
       me: me,
       opp: opp,
       myPrivate: myPriv,
       results: results,
       revealedCardIds: revealed,
       oppPreview: oppPreview,
+      effects: const BoardEffects(), // ⬅️ reset
     );
   }
 }

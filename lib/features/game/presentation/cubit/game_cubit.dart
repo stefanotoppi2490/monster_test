@@ -16,7 +16,7 @@ class GameCubit extends Cubit<GameState> {
   GameCubit({required this.repo})
     : super(
         GameState.initial(
-          order: Terrain.values, // placeholder, sovrascritto in startMatch
+          order: Terrain.values,
           results: const [],
           revealed: const [],
           me: const PlayerPublic(score: 0, mana: 0),
@@ -31,7 +31,6 @@ class GameCubit extends Cubit<GameState> {
     _myDeck = repo.starterDeck();
     _oppDeck = repo.starterDeck();
 
-    // pesca iniziale: fino a 5
     final (d2, startHand) = repo.draw(_myDeck, kHandSize);
     _myDeck = d2;
 
@@ -53,6 +52,7 @@ class GameCubit extends Cubit<GameState> {
         results: [],
         revealedCardIds: [],
         oppPreview: const SecretChoice(),
+        effects: const BoardEffects(), // reset effetti
       ),
     );
 
@@ -68,12 +68,11 @@ class GameCubit extends Cubit<GameState> {
         return;
       }
 
-      // left == 0
       t.cancel();
       switch (state.phase) {
         case Phase.drafting:
           _lockChoicesAndReveal();
-          _startTimer(); // continua a contare la reveal
+          _startTimer(); // conterà la reveal
           break;
         case Phase.reveal:
           _scoreRound(
@@ -81,7 +80,6 @@ class GameCubit extends Cubit<GameState> {
             state.oppPreview?.sprint,
             state.oppPreview?.block,
           );
-          // _scoreRound si occupa di andare in scoring → recap e riavviare timer
           break;
         case Phase.recap:
           _nextRound();
@@ -92,6 +90,7 @@ class GameCubit extends Cubit<GameState> {
     });
   }
 
+  // ---------- DRAFTING ----------
   void selectCard(GameCard card) {
     if (state.phase != Phase.drafting) return;
 
@@ -102,20 +101,16 @@ class GameCubit extends Cubit<GameState> {
     final alreadySprint = choice.sprint != null;
     final alreadyBlock = choice.block != null;
 
-    // ❶ la carta deve essere ancora in mano (evita doppio tap/race)
     final inHand = state.myPrivate.hand.any((c) => c.id == card.id);
     if (!inHand) return;
 
-    // ❷ vincoli logici
     final manaCost = card.manaCost;
     if (state.me.mana < manaCost) return;
     if (isSprint && alreadySprint) return;
     if (isBlock && alreadyBlock) return;
 
-    // ❸ applico scelta, rimuovo dalla mano e SOLO ORA scalo il mana
     final newHand = [...state.myPrivate.hand]
       ..removeWhere((c) => c.id == card.id);
-
     final newChoice = SecretChoice(
       sprint: isSprint ? card : choice.sprint,
       block: isBlock ? card : choice.block,
@@ -148,6 +143,7 @@ class GameCubit extends Cubit<GameState> {
     );
   }
 
+  // ---------- REVEAL ----------
   void _lockChoicesAndReveal() {
     final (deckAfter, oppHand) = repo.draw(_oppDeck, kHandSize);
     _oppDeck = deckAfter;
@@ -181,20 +177,71 @@ class GameCubit extends Cubit<GameState> {
           if (oppSprint != null) oppSprint.id,
           if (oppBlock != null) oppBlock.id,
         ],
+        effects: const BoardEffects(), // reset effetti ad inizio reveal
       ),
     );
-
-    // 👆 NIENTE Future.delayed QUI
   }
 
+  // Gioca una carta trick dalla mano (solo in reveal)
+  void playTrick(GameCard card) {
+    if (state.phase != Phase.reveal) return;
+    if (card.kind != CardKind.trick) return;
+    if (card.trick == null || card.trick!.isNoop) return;
+
+    final inHand = state.myPrivate.hand.any((c) => c.id == card.id);
+    if (!inHand) return;
+
+    final manaCost = card.manaCost;
+    if (state.me.mana < manaCost) return;
+
+    // Applica effetti
+    final newEffects = BoardEffects.applyTrick(state.effects, card.trick!);
+
+    // Rimuovi dalla mano e scala mana
+    final newHand = [...state.myPrivate.hand]
+      ..removeWhere((c) => c.id == card.id);
+
+    emit(
+      state.copyWith(
+        myPrivate: state.myPrivate.copyWith(hand: newHand),
+        me: state.me.copyWith(mana: state.me.mana - manaCost),
+        effects: newEffects,
+        revealedCardIds: [...state.revealedCardIds, card.id],
+      ),
+    );
+  }
+
+  // ---------- SCORING ----------
   void _scoreRound(Terrain t, GameCard? oppSprint, GameCard? oppBlock) {
     final mySprint = state.myPrivate.choice.sprint;
     final myBlock = state.myPrivate.choice.block;
 
-    final mySprintVal = mySprint?.valueOn(t) ?? 0;
-    final myBlockVal = myBlock?.valueOn(t) ?? 0;
-    final oppSprintVal = oppSprint?.valueOn(t) ?? 0;
-    final oppBlockVal = oppBlock?.valueOn(t) ?? 0;
+    // Applica distruzioni: se distrutto, valore = 0
+    final eff = state.effects;
+
+    final bool mySprintDestroyed = eff.destroyMySprint;
+    final bool myBlockDestroyed = eff.destroyMyBlock;
+    final bool oppSprintDestroyed = eff.destroyOppSprint;
+    final bool oppBlockDestroyed = eff.destroyOppBlock;
+
+    int mySprintVal = (mySprintDestroyed || mySprint == null)
+        ? 0
+        : mySprint.valueOn(t) + eff.mySprintDelta;
+    int myBlockVal = (myBlockDestroyed || myBlock == null)
+        ? 0
+        : myBlock.valueOn(t) + eff.myBlockDelta;
+    int oppSprintVal = (oppSprintDestroyed || oppSprint == null)
+        ? 0
+        : oppSprint.valueOn(t) + eff.oppSprintDelta;
+    int oppBlockVal = (oppBlockDestroyed || oppBlock == null)
+        ? 0
+        : oppBlock.valueOn(t) + eff.oppBlockDelta;
+
+    // clamp a zero minimo
+    mySprintVal = max(mySprintVal, 0);
+    myBlockVal = max(myBlockVal, 0);
+    oppSprintVal = max(oppSprintVal, 0);
+    oppBlockVal = max(oppBlockVal, 0);
 
     final myDelta = max(mySprintVal - oppBlockVal, 0);
     final oppDelta = max(oppSprintVal - myBlockVal, 0);
@@ -203,7 +250,6 @@ class GameCubit extends Cubit<GameState> {
       terrain: t,
       me: state.myPrivate.choice,
       opp: SecretChoice(sprint: oppSprint, block: oppBlock),
-      // se RoundResult ha un unico delta, teniamo il "mio".
       delta: myDelta,
     );
 
@@ -213,7 +259,6 @@ class GameCubit extends Cubit<GameState> {
         results: [...state.results, res],
         me: state.me.copyWith(score: state.me.score + myDelta),
         opp: state.opp.copyWith(score: state.opp.score + oppDelta),
-        // pulisco l’anteprima avversaria se la uso (vedi punto 2)
         oppPreview: null,
       ),
     );
@@ -239,8 +284,6 @@ class GameCubit extends Cubit<GameState> {
       return;
     }
 
-    // rimuovi dalla mano le carte effettivamente giocate (sono già state tolte in selectCard)
-    // quindi qui basta refill
     final (newDeck, drawn) = _refillHandTo(
       kHandSize,
       _myDeck,
@@ -266,13 +309,13 @@ class GameCubit extends Cubit<GameState> {
           mana: (state.opp.mana + kBaseManaPerTurn).clamp(0, kMaxManaCap),
         ),
         oppPreview: const SecretChoice(),
+        effects: const BoardEffects(), // reset effetti per nuovo round
       ),
     );
 
     _startTimer();
   }
 
-  /// Refill: pesca dal deck solo le carte necessarie per arrivare a `size`
   (Deck, List<GameCard>) _refillHandTo(
     int size,
     Deck deck,

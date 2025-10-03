@@ -46,12 +46,16 @@ GameCard _b(
   );
 }
 
-GameCard _i(String name, {required int cost}) {
-  // placeholder: nessun valore per terreno (tutti 0). Effetti li metteremo dopo.
+GameCard _t(
+  // ⬅️ Trick
+  String name, {
+  required int cost,
+  required TrickSpec spec,
+}) {
   return GameCard(
     id: name,
     name: name,
-    kind: CardKind.instant,
+    kind: CardKind.trick,
     manaCost: cost.clamp(1, 10),
     valueByTerrain: const {
       Terrain.asfalto: 0,
@@ -59,14 +63,11 @@ GameCard _i(String name, {required int cost}) {
       Terrain.sabbia: 0,
       Terrain.fango: 0,
     },
+    trick: spec,
   );
 }
 
 /// ---- SEED 35 CARTE ---------------------------------------------------------
-/// 15 sprint, 15 block, 5 instant (placeholder)
-/// ---- SEED 35 CARTE ---------------------------------------------------------
-/// Remap valori: terra→asfalto, mare→acqua, sabbia→sabbia, aria→fango.
-/// Mana COST fissato manualmente carta per carta.
 List<GameCard> _seed35() => [
   // 10 sprint “uniche”
   _s('Leviatano', 0, 9, 0, 0, 6),
@@ -80,7 +81,7 @@ List<GameCard> _seed35() => [
   _s('Carcassa Errante', 4, 0, 0, 1, 3),
   _s('Grifone', 0, 0, 0, 7, 4),
 
-  // 5 sprint “beta” per arrivare a 15 sprint (stesse stats, costo simile)
+  // 5 sprint “beta”
   _s('Kraken Abissale', 0, 9, 0, 0, 6),
   _s('Arpia Fulminea', 0, 0, 1, 8, 5),
   _s('Serpente delle Dune', 0, 0, 9, 2, 6),
@@ -99,19 +100,44 @@ List<GameCard> _seed35() => [
   _b('Argine Antico', 6, 0, 0, 0, 3),
   _b('Vortice', 0, 0, 0, 6, 3),
 
-  // 5 block “beta” per arrivare a 15 block
+  // 5 block “beta”
   _b('Muraglia d’Ossidiana', 7, 0, 0, 0, 4),
   _b('Onda Infranta', 0, 7, 0, 0, 4),
   _b('Vento Spezzante', 0, 0, 0, 7, 4),
   _b('Collasso di Sabbia', 0, 0, 7, 0, 4),
   _b('Baluardo Antico', 5, 0, 0, 0, 3),
 
-  // 5 instant (placeholder con costi fissi)
-  _i('Scatto Istantaneo', cost: 2),
-  _i('Raffica Istantanea', cost: 2),
-  _i('Barriera Immediata', cost: 2),
-  _i('Finta Fulminea', cost: 1),
-  _i('Sgambetto', cost: 3),
+  // 5 TRICK (ex “instant”) — esempi concreti
+  // Aggiungi +2 al tuo Sprinter
+  _t(
+    'Nitro Istantanea',
+    cost: 2,
+    spec: TrickSpec(side: TargetSide.me, addToSprinter: 2),
+  ),
+  // Aggiungi +2 al tuo Blocker
+  _t(
+    'Scudo Arcano',
+    cost: 2,
+    spec: TrickSpec(side: TargetSide.me, addToBlocker: 2),
+  ),
+  // Rimuovi 2 allo Sprinter avversario
+  _t(
+    'Trappola di Sabbia',
+    cost: 2,
+    spec: TrickSpec(side: TargetSide.opp, removeFromSprinter: 2),
+  ),
+  // Rimuovi 2 al Blocker avversario e +1 al tuo Sprinter
+  _t(
+    'Finta Letale',
+    cost: 3,
+    spec: TrickSpec(side: TargetSide.opp, removeFromBlocker: 2),
+  ),
+  // Distruggi il Blocker avversario
+  _t(
+    'Annullamento Totale',
+    cost: 4,
+    spec: TrickSpec(side: TargetSide.opp, destroyBlocker: true),
+  ),
 ];
 
 Deck buildStarterDeck35() {

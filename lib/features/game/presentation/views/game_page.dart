@@ -309,6 +309,7 @@ class _OpponentField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // In reveal/scoring/recap mostriamo le carte del round corrente
     final bool showingCurrent =
         state.phase == Phase.reveal ||
         state.phase == Phase.scoring ||
@@ -320,6 +321,48 @@ class _OpponentField extends StatelessWidget {
 
     final showReveal = state.phase != Phase.drafting;
 
+    // Effetti/distruzioni lato avversario
+    final eff = state.effects;
+    final bool oppSprintDestroyed = eff.destroyOppSprint;
+    final bool oppBlockDestroyed = eff.destroyOppBlock;
+    final int oppSprintDelta = eff.oppSprintDelta;
+    final int oppBlockDelta = eff.oppBlockDelta;
+
+    // Helper per sovrapporre il badge delta
+    Widget _wrapWithDelta({required Widget child, required int delta}) {
+      if (delta == 0) return child;
+      final txt = delta > 0 ? '+$delta' : '$delta';
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          child,
+          Positioned(
+            right: -6,
+            top: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: Text(
+                txt,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    final hasOppSprint = opp?.sprint != null && !oppSprintDestroyed;
+    final hasOppBlock = opp?.block != null && !oppBlockDestroyed;
+
     return _FieldArea(
       height: 200,
       label: 'Avversario',
@@ -330,22 +373,33 @@ class _OpponentField extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _FaceDownSlot(
-                faceUp: showReveal && opp?.sprint != null,
-                front: opp?.sprint == null
+                faceUp: showReveal && hasOppSprint,
+                front: (!hasOppSprint || opp?.sprint == null)
                     ? null
-                    : FlipCardFace(card: opp!.sprint!, terrain: terrain),
+                    : _wrapWithDelta(
+                        child: FlipCardFace(
+                          card: opp!.sprint!,
+                          terrain: terrain,
+                        ),
+                        delta: oppSprintDelta,
+                      ),
               ),
               const SizedBox(width: 16),
               _FaceDownSlot(
-                faceUp: showReveal && opp?.block != null,
-                front: opp?.block == null
+                faceUp: showReveal && hasOppBlock,
+                front: (!hasOppBlock || opp?.block == null)
                     ? null
-                    : FlipCardFace(card: opp!.block!, terrain: terrain),
+                    : _wrapWithDelta(
+                        child: FlipCardFace(
+                          card: opp!.block!,
+                          terrain: terrain,
+                        ),
+                        delta: oppBlockDelta,
+                      ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          // 👇 PUNTEGGIO AVVERSARIO
           Text(
             'Punteggio: ${state.opp.score}',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -374,8 +428,52 @@ class _MyField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showReveal = state.phase != Phase.drafting;
-    final hasSprint = state.myPrivate.choice.sprint != null;
-    final hasBlock = state.myPrivate.choice.block != null;
+
+    final hasSprintBase = state.myPrivate.choice.sprint != null;
+    final hasBlockBase = state.myPrivate.choice.block != null;
+
+    // Effetti/distruzioni lato mio
+    final eff = state.effects;
+    final bool mySprintDestroyed = eff.destroyMySprint;
+    final bool myBlockDestroyed = eff.destroyMyBlock;
+    final int sprintDelta = eff.mySprintDelta;
+    final int blockDelta = eff.myBlockDelta;
+
+    // Dopo le distruzioni, valutiamo se "c'è" ancora la carta
+    final hasSprint = hasSprintBase && !mySprintDestroyed;
+    final hasBlock = hasBlockBase && !myBlockDestroyed;
+
+    // Helper per sovrapporre il badge delta
+    Widget _wrapWithDelta({required Widget child, required int delta}) {
+      if (delta == 0) return child;
+      final txt = delta > 0 ? '+$delta' : '$delta';
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          child,
+          Positioned(
+            right: -6,
+            top: -6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: Text(
+                txt,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
     return _FieldArea(
       height: 200,
@@ -391,14 +489,19 @@ class _MyField extends StatelessWidget {
                 kind: CardKind.sprint,
                 state: state,
                 cubit: cubit,
-                showBack: hasSprint && !showReveal,
+                // In drafting mostro il dorso se ho scelto; se distrutta, niente
+                showBack: hasSprintBase && !showReveal && !mySprintDestroyed,
+                // In reveal/scoring mostro la faccia se non distrutta
                 faceUp: showReveal && hasSprint,
                 front: hasSprint
-                    ? FlipCardFace(
-                        card: state.myPrivate.choice.sprint!,
-                        terrain: terrain,
+                    ? _wrapWithDelta(
+                        child: FlipCardFace(
+                          card: state.myPrivate.choice.sprint!,
+                          terrain: terrain,
+                        ),
+                        delta: sprintDelta,
                       )
-                    : null,
+                    : null, // distrutta => nulla
                 isMine: true,
               ),
               const SizedBox(width: 16),
@@ -407,12 +510,15 @@ class _MyField extends StatelessWidget {
                 kind: CardKind.block,
                 state: state,
                 cubit: cubit,
-                showBack: hasBlock && !showReveal,
+                showBack: hasBlockBase && !showReveal && !myBlockDestroyed,
                 faceUp: showReveal && hasBlock,
                 front: hasBlock
-                    ? FlipCardFace(
-                        card: state.myPrivate.choice.block!,
-                        terrain: terrain,
+                    ? _wrapWithDelta(
+                        child: FlipCardFace(
+                          card: state.myPrivate.choice.block!,
+                          terrain: terrain,
+                        ),
+                        delta: blockDelta,
                       )
                     : null,
                 isMine: true,
@@ -420,7 +526,6 @@ class _MyField extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          // 👇 PUNTEGGIO MIO
           Text(
             'Punteggio: ${state.me.score}',
             style: const TextStyle(color: Colors.white70, fontSize: 12),
@@ -710,8 +815,13 @@ class _BottomHand extends StatelessWidget {
                   itemBuilder: (_, i) {
                     final c = state.myPrivate.hand[i];
                     final disabled =
-                        state.phase != Phase.drafting ||
-                        c.manaCost > state.me.mana;
+                        !((state.phase == Phase.drafting &&
+                                (c.kind == CardKind.sprint ||
+                                    c.kind == CardKind.block) &&
+                                c.manaCost <= state.me.mana) ||
+                            (state.phase == Phase.reveal &&
+                                c.kind == CardKind.trick &&
+                                c.manaCost <= state.me.mana));
 
                     // key stabile per calcolo start
                     final itemKey = pageState?._handItemKeys.putIfAbsent(
@@ -738,13 +848,24 @@ class _BottomHand extends StatelessWidget {
                             if (pageState == null || itemKey == null) return;
 
                             final isDrafting = state.phase == Phase.drafting;
+                            final isReveal = state.phase == Phase.reveal;
+
+                            final hasMana = c.manaCost <= state.me.mana;
+
+                            if (c.kind == CardKind.trick) {
+                              // Giocabile solo in reveal
+                              if (!isReveal || !hasMana) return;
+                              // Lancia immediatamente la trick (nessun drag/animazione necessaria)
+                              cubit.playTrick(c);
+                              return;
+                            }
+
+                            // SPRINT/BLOCK: solo in drafting + slot libero
+                            if (!isDrafting) return;
                             final slotFree = (c.kind == CardKind.sprint)
                                 ? state.myPrivate.choice.sprint == null
                                 : state.myPrivate.choice.block == null;
-
-                            final hasMana = c.manaCost <= state.me.mana;
-                            // Blocca animazione se non posso piazzare davvero
-                            if (!isDrafting || !slotFree || !hasMana) return;
+                            if (!slotFree || !hasMana) return;
 
                             final destKey = (c.kind == CardKind.sprint)
                                 ? pageState._mySprintSlotKey
@@ -758,13 +879,13 @@ class _BottomHand extends StatelessWidget {
                                 terrain: state.currentTerrain,
                               ),
                             );
+
                             await pageState._flyCardToSlot(
                               cardId: c.id,
                               sourceKey: itemKey,
                               destKey: destKey,
                               flyingChild: flying,
                             );
-                            // dopo il volo aggiorno lo stato (ora sono certo che è valido)
                             cubit.selectCard(c);
                           },
                           child: cardContent,
@@ -989,6 +1110,32 @@ class _RoundRecapOverlay extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeltaBadge extends StatelessWidget {
+  final int delta;
+  const _DeltaBadge(this.delta);
+
+  @override
+  Widget build(BuildContext context) {
+    final txt = delta > 0 ? '+$delta' : '$delta';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: Colors.black87,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Text(
+        txt,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
         ),
       ),
     );
