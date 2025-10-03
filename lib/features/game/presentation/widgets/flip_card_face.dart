@@ -12,15 +12,10 @@ class FlipCardFace extends StatelessWidget {
     return Container(
       width: kFieldCardWidth,
       height: kFieldCardHeight,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white),
-      ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
         child: Image.asset(
           card.imagePath,
-          fit: BoxFit.cover,
+          fit: BoxFit.contain,
           errorBuilder: (context, error, stackTrace) {
             // Fallback se l'immagine non viene trovata
             final isSprint = card.kind == CardKind.sprint;

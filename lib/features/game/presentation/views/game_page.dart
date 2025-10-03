@@ -402,7 +402,7 @@ class _MyField extends StatelessWidget {
     final hasBlock = hasBlockBase && !myBlockDestroyed;
 
     // Helper per sovrapporre il badge delta
-    Widget _wrapWithDelta({required Widget child, required int delta}) {
+    Widget wrapWithDelta({required Widget child, required int delta}) {
       if (delta == 0) return child;
       final txt = delta > 0 ? '+$delta' : '$delta';
       return Stack(
@@ -451,7 +451,7 @@ class _MyField extends StatelessWidget {
                 // In reveal/scoring mostro la faccia se non distrutta
                 faceUp: showReveal && hasSprint,
                 front: hasSprint
-                    ? _wrapWithDelta(
+                    ? wrapWithDelta(
                         child: FlipCardFace(
                           card: state.myPrivate.choice.sprint!,
                           terrain: terrain,
@@ -470,7 +470,7 @@ class _MyField extends StatelessWidget {
                 showBack: hasBlockBase && !showReveal && !myBlockDestroyed,
                 faceUp: showReveal && hasBlock,
                 front: hasBlock
-                    ? _wrapWithDelta(
+                    ? wrapWithDelta(
                         child: FlipCardFace(
                           card: state.myPrivate.choice.block!,
                           terrain: terrain,
@@ -554,10 +554,7 @@ class _PlaceSlot extends StatelessWidget {
                   ? Colors.white10.withOpacity(0.12)
                   : Colors.white10.withOpacity(0.05),
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: hovering ? const Color(0xFF6A72E8) : Colors.white24,
-                width: hovering ? 2 : 1,
-              ),
+
               boxShadow: hovering
                   ? const [
                       BoxShadow(
