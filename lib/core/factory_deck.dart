@@ -2,6 +2,49 @@ import 'dart:math';
 import 'package:monster/core/models/models.dart';
 
 /// ---- HELPERS ---------------------------------------------------------------
+String _imagePath(String cardName) {
+  // Mappa i nomi delle carte ai percorsi delle immagini specifici
+  final imageMap = {
+    'Leviatano': 'assets/cards/leviatano.png',
+    'Zombie Abissale': 'assets/cards/zombie_abissale.png',
+    'Falco Ionico': 'assets/cards/falco_ionico.png',
+    'Viverna delle Dune': 'assets/cards/viverna_dune.png',
+    'Cavaliere delle Tempeste': 'assets/cards/cavaliere_tempeste.png',
+    'Troll della Terra': 'assets/cards/troll_terra.png',
+    'Sirena degli Abissi': 'assets/cards/sirena_abissi.png',
+    'Mirmidone': 'assets/cards/mirmidone.png',
+    'Carcassa Errante': 'assets/cards/carcassa_errante.png',
+    'Grifone': 'assets/cards/grifone.png',
+    'Kraken Abissale': 'assets/cards/kraken_abissale.png',
+    'Arpia Fulminea': 'assets/cards/arpia_fulminea.png',
+    'Serpente delle Dune': 'assets/cards/serpente_dune.png',
+    'Guerriero del Tuono': 'assets/cards/guerriero_tuono.png',
+    'Gigante di Pietra': 'assets/cards/gigante_pietra.png',
+    'Argine Granitico': 'assets/cards/argine_granitico.png',
+    'Marea Contraria': 'assets/cards/marea_contraria.png',
+    'Turbine Aereo': 'assets/cards/turbine_aereo.png',
+    'Duna Mobile': 'assets/cards/duna_mobile.png',
+    'Bastione': 'assets/cards/bastione.png',
+    'Frangiflutti': 'assets/cards/frangiflutti.png',
+    'Controvento': 'assets/cards/controvento.png',
+    'Sabbie Mobili': 'assets/cards/sabbie_mobili.png',
+    'Argine Antico': 'assets/cards/argine_antico.png',
+    'Vortice': 'assets/cards/vortice.png',
+    'Muraglia d\'Ossidiana': 'assets/cards/muraglia_ossidiana.png',
+    'Onda Infranta': 'assets/cards/onda_infranta.png',
+    'Vento Spezzante': 'assets/cards/vento_spezzante.png',
+    'Collasso di Sabbia': 'assets/cards/collasso_sabbia.png',
+    'Baluardo Antico': 'assets/cards/baluardo_antico.png',
+    'Nitro Istantanea': 'assets/cards/nitro_istantanea.png',
+    'Scudo Arcano': 'assets/cards/scudo_arcano.png',
+    'Trappola di Sabbia': 'assets/cards/trappola_sabbia.png',
+    'Finta Letale': 'assets/cards/finta_letale.png',
+    'Annullamento Totale': 'assets/cards/annullamento_totale.png',
+  };
+
+  return imageMap[cardName] ?? 'assets/cards/default.png';
+}
+
 GameCard _s(
   String name,
   int asfalto,
@@ -21,6 +64,7 @@ GameCard _s(
       Terrain.sabbia: sabbia,
       Terrain.fango: fango,
     },
+    imagePath: _imagePath(name),
   );
 }
 
@@ -43,6 +87,7 @@ GameCard _b(
       Terrain.sabbia: sabbia,
       Terrain.fango: fango,
     },
+    imagePath: _imagePath(name),
   );
 }
 
@@ -64,6 +109,7 @@ GameCard _t(
       Terrain.fango: 0,
     },
     trick: spec,
+    imagePath: _imagePath(name),
   );
 }
 

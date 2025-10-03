@@ -53,6 +53,7 @@ class GameCard {
   final Map<Terrain, int> valueByTerrain; // per le trick metti tutto 0
   final int manaCost;
   final TrickSpec? trick; // ⬅️ solo se kind == trick
+  final String imagePath; // ⬅️ percorso dell'immagine della carta
 
   const GameCard({
     required this.id,
@@ -61,6 +62,7 @@ class GameCard {
     required this.valueByTerrain,
     required this.manaCost,
     this.trick,
+    required this.imagePath,
   });
 
   int valueOn(Terrain t) => valueByTerrain[t] ?? 0;
@@ -72,6 +74,7 @@ class GameCard {
     valueByTerrain: valueByTerrain,
     manaCost: manaCost,
     trick: trick,
+    imagePath: imagePath,
   );
 }
 

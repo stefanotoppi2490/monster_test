@@ -834,7 +834,8 @@ class _BottomHand extends StatelessWidget {
 
                     final cardContent = SizedBox(
                       key: itemKey,
-                      width: 120,
+                      width: 180,
+                      height: 250,
                       child: CardChip(card: c, terrain: state.currentTerrain),
                     );
 
@@ -872,8 +873,8 @@ class _BottomHand extends StatelessWidget {
                                 : pageState._myBlockSlotKey;
 
                             final flying = SizedBox(
-                              width: 120,
-                              height: 160,
+                              width: 180,
+                              height: 250,
                               child: CardChip(
                                 card: c,
                                 terrain: state.currentTerrain,
